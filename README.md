@@ -15,5 +15,5 @@ Download or copy/paste the code in the repository into your own R/RStudio consol
 To run as a gist, copy/paste and run the following in R/RStudio:
 
 library(shiny)
-# Gist URL - https://gist.github.com/stdecker/e4db38502091289bf61f837b49b74410
+`# Gist URL - https://gist.github.com/stdecker/e4db38502091289bf61f837b49b74410`
 runGist("e4db38502091289bf61f837b49b74410")
