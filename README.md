@@ -12,7 +12,7 @@ Download or copy/paste the code in the repository into your own R/RStudio consol
 
 ## Run as Gist
 
-I also made a Gist, which allows the app to be imported from GitHub into R. The Gist website can [be found here](https://gist.github.com/stdecker/e4db38502091289bf61f837b49b74410).To run as a gist, copy/paste and run the following in R/RStudio:
+I also made a Gist, which allows the app to be imported from GitHub into R. The Gist website can [be found here](https://gist.github.com/stdecker/e4db38502091289bf61f837b49b74410). To run as a gist, copy/paste and run the following in R/RStudio:
 
 library(shiny)
 runGist("e4db38502091289bf61f837b49b74410")
