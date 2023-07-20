@@ -5,7 +5,10 @@ Still under development, but feel free to make changes. Excel sheet must be 2 co
 
 
 ## Run in ShinyApps.io
-This app may also be run in ShinyApps.io. I will likely not pay for this, so please bear in mind that the app may not be usable at times. For other ways of running the app, see below.
+This app may also be run in ShinyApps.io. Please note that I will likely not pay for this, so please bear in mind that the app may not be usable at times. For other ways of running the app, see below. <br>
+<br>
+
+[ShinyApp link](https://deckerst.shinyapps.io/ATPapp/)
 
 ## Run in R/RStudio
 Download or copy/paste the code in the repository into your own R/RStudio console. Assuming you have all of the libraries installed (RStudio will prompt you to install the libraries, if not), then the app should run fine.
