@@ -8,11 +8,15 @@
 #
 
 library(shiny)
+
+
+
 pacman::p_load(readxl, tidyverse, ggplot2, ggprism, ggpubr, zoo, crosstalk, plotly, DT)
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(titlePanel("Analysis of Fluoromax Data (Updated on 7/20/2023 by Stephen Decker)"),
-                sidebarLayout(sidebarPanel(width = 2,
+ui <- fluidPage(navbarPage("Horiba Fluorometer Analysis", 
+                           tabPanel("App", fluid = TRUE, icon = icon('calculator'),
+                           sidebarLayout(sidebarPanel(width = 2,
                                            fileInput('file1', 'Choose xlsx file',
                                                      accept = c(".xlsx", ".csv")),
                                            textInput("sheet_name",
@@ -107,12 +111,49 @@ ui <- fluidPage(titlePanel("Analysis of Fluoromax Data (Updated on 7/20/2023 by 
                   tabsetPanel(
                     tabPanel("Graph", htmlOutput('graph'),
                     ),
-                    tabPanel("ATP Production Rates", tableOutput('rates'),),
+                    tabPanel("Flux Rates (pmol/sec/\u03BCg)", tableOutput('rates'),),
                     tabPanel("Final Data", tableOutput('final')),
+                    tabPanel("User Guide", shiny::textOutput('guide'),),
                     tabPanel("Raw Data", tableOutput('raw')))
                 )
                 )
-)
+
+),
+tabPanel("User Guide",icon = icon('book-open'), fluid = TRUE,
+           tabPanel("User Guide"),
+           fluidRow(
+             h2(HTML("<b>Instructions</b>")),
+             h5(HTML("<p>For version control and other questions, see my <a href='https://github.com/stdecker/FM4_ATP_Analysis'>GitHub repo</a>.</p>")),
+             h4(HTML("<b>Uploading Data</b>")),
+             h5("To upload data, Each Excel file must first be set up with 'Time' and 'Intensity' as the first two columns of each sheet, with the respective data in the underlying rows of each column."),
+             h5("Once data are in the correct format, you can upload the data using the tab on the left"),
+             h4(HTML("<b>Selecting a Sheet</b>")),
+             h5("The app requires you to input a 'Sheet Name'. The default naming scheme in Excel follows Sheet[x], where the first sheet x = 1 (so, Sheet1, Sheet2, etc.). 
+                I have set this up where data would be stored on different sheets within one single Excel file, so when analyzing the data, 
+                all that needs to be done is to click 'Add to Final Data' and then proceed to the next sheet. As long as you have your data in one Excel file spread across different sheets, 
+                you should not need to browse and upload a new excel file for every analysis. 
+                However, I believe uploading a new Excel sheet should not clear the existing data (I'm not sure, though, as I haven't tested that)."),
+             h4(HTML("<b>Updating Standard Curves</b>")),
+             h5("It is important to update the standard cuyrve information for each analysis. I have the standard curve equation setup as 'y = mx + b'. 
+                To update the curve, change the [x] and [b] values. If standard curve follows a log equation, check the box stating 'Log'"),
+             h4(HTML("<b>Selecting Points on Plot</b>")),
+             h5("To Zoom in on the plot, select the 'Zoom' tool at the top of the plot. Draw a box area to zoom in. Double click to reset plot size."),
+             h5("To select points, select the 'Box Select' tool at the top of the plot. Draw a box with the points you wish to select, making sure that the area of the box includes the data points. 
+                Double click to reset the data selected"),
+             h4(HTML("<b>Marking Selected Data for Analysis</b>")),
+             h5(HTML("Once data have been selected using the 'Box Select' tool, the table to the right of the graph will update and show <i>only</i> the data selected in the box area. 
+                Type in (do not click the rows in the table or the data will reset) the first and last time points in the table in the respective 'Start' and 'End' inputs in the left column.
+                For example, if I am selecting the background correction and my timestamps range from 120 to 135 seconds, 
+                I would inpput '120' into the 'Background Correction Start' input box and '135' into the 'Background Correction End' input box'. 
+                Once the input boxes have been updated, the data in the 'Flux' tab will automatically update. 
+                <b><u>Please note that the data in the 'Flux' tab is not stored and will be deleted upon closing the app unless the 'Add to Final Data' button is presses and the data are downloaded (see below)</u></b>.")),
+             h4(HTML("<b>Saving and Downloading Data</b>")),
+             h5("Once the data are in the 'Flux' table, they should be checked for accuracy and adjusted accordingly (again, these will update automatically once the timestamps are changed."),
+             h5("After data have been checked and verified, click the 'Add to Final Data' button. This will add all of the verified data to a separate data frame and stored until the app is closed.
+                At this point, you may continue with the analysis of other sheets in your Excel File by changing the 'Sheet Name', selecting new timestamps, and adding the verified data to the 'Final Data' dataframe (which will be added as a new row with the corresponding Sheet Name as the first column)."),
+             h5("Once the analysis is completely finished, make sure all of the data that have been analyzed are added to the 'Final Data' tab. Select the 'Download Final Data' button.
+                This will prompt a new window where you can rename the CSV file and save it onto your local system. Hit save. The data should be stored in the selected location and the app may now be closed.")
+           ))))
 
 server <- function(input, output, session){
   
@@ -131,6 +172,8 @@ server <- function(input, output, session){
     updateNumericInput(session, "adp5_slope_end", value = 0)
     
   })
+  
+  # output$guide <- 
   
   output$raw <- renderTable({
     inFile <- input$file1
