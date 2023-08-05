@@ -113,7 +113,6 @@ ui <- fluidPage(navbarPage("Horiba Fluorometer Analysis",
                     ),
                     tabPanel("Flux Rates (pmol/sec/\u03BCg)", tableOutput('rates'),),
                     tabPanel("Final Data", tableOutput('final')),
-                    tabPanel("User Guide", shiny::textOutput('guide'),),
                     tabPanel("Raw Data", tableOutput('raw')))
                 )
                 )
@@ -280,13 +279,15 @@ server <- function(input, output, session){
     
     data$flux <- as.numeric(data$flux)
     
+    colnames(data) <- c("Time", "Raw", "Raw Slope", 'Background Corrected', 'Concentration (pmol)', 'Flux (pmol/sec)')
+    
     sd <- SharedData$new(data)
     
     fig <- plot_ly()
     # Add traces
     fig <- fig %>% 
-      add_lines(data = sd, x = ~x, y = ~y, name = paste(name2), line = list(color='blue', width = 1)) %>%
-      add_markers(data = sd, x = ~x, y = ~y, alpha = 0.01) %>%
+      add_lines(data = sd, x = ~Time, y = ~Raw, name = paste(name2), line = list(color='blue', width = 1)) %>%
+      add_markers(data = sd, x = ~Time, y = ~Raw, alpha = 0.01) %>%
       highlight("plotly_selected", dynamic = TRUE)
     
     ay <- list(
@@ -296,8 +297,8 @@ server <- function(input, output, session){
       title = "<b>Flux</b>")
     
     fig <- fig %>% 
-      add_lines(data = sd, x = ~x, y = ~Slope, name = "Flux", yaxis = "y2", line = list(color='red', width = 2.5)) %>%
-      add_markers(data = sd, x = ~x, y = ~Slope, alpha = 0.01, yaxis = "y2") %>%
+      add_lines(data = sd, x = ~Time, y = ~`Flux (pmol/sec)`, name = "Flux (pmol/sec/\u03BCg)", yaxis = "y2", line = list(color='red', width = 2.5)) %>%
+      add_markers(data = sd, x = ~Time, y = ~`Flux (pmol/sec)`, alpha = 0.01, yaxis = "y2") %>%
       highlight("plotly_selected", dynamic = TRUE)
     
     # Set figure title, x and y-axes titles
@@ -580,7 +581,9 @@ server <- function(input, output, session){
     }
     
     colnames(atp_flux_means) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5', 
-                                  'Background Start', 'Background end', 'ADP1 Start', 'ADP1 end', 'ADP2 Start', 'ADP2 end', 'ADP3 Start', 'ADP3 end', 'ADP4 Start', 'ADP4 end', 'ADP5 Start', 'ADP5 end')
+                                  'Background Start Time (s)', 'Background end Time (s)', 'ADP1 Start Time (s)', 'ADP1 end Time (s)', 
+                                  'ADP2 Start Time (s)', 'ADP2 end Time (s)', 'ADP3 Start Time (s)', 'ADP3 end Time (s)', 
+                                  'ADP4 Start Time (s)', 'ADP4 end Time (s)', 'ADP5 Start Time (s)', 'ADP5 end Time (s)')
     
     
     return(atp_flux_means)
@@ -616,7 +619,9 @@ server <- function(input, output, session){
     final_data <- data.frame(rv$df)
     
     colnames(final_data) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5', 
-                              'Background Start', 'Background end', 'ADP1 Start', 'ADP1 end', 'ADP2 Start', 'ADP2 end', 'ADP3 Start', 'ADP3 end', 'ADP4 Start', 'ADP4 end', 'ADP5 Start', 'ADP5 end')
+                              'Background Start Time (s)', 'Background end Time (s)', 'ADP1 Start Time (s)', 'ADP1 end Time (s)', 
+                              'ADP2 Start Time (s)', 'ADP2 end Time (s)', 'ADP3 Start Time (s)', 'ADP3 end Time (s)', 
+                              'ADP4 Start Time (s)', 'ADP4 end Time (s)', 'ADP5 Start Time (s)', 'ADP5 end Time (s)')
     
     thedata <- reactive(final_data)
     
