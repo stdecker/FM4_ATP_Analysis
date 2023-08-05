@@ -35,13 +35,13 @@ ui <- fluidPage(navbarPage("Horiba Fluorometer Analysis",
                                                         "Standard Curve x",
                                                         min = -3000000000000000000,
                                                         max = 3000000000000000000,
-                                                        value = 4870815.931),
+                                                        value = 215516.6563),
                                            numericInput("std_curve_value_b",
                                                         "Standard Curve b",
                                                         min = -3000000000000000000,
                                                         max = 3000000000000000000,
-                                                        value = --1123036.603),
-                                           checkboxInput("use_log", "Use Log?", value = TRUE),
+                                                        value = 158967.0058),
+                                           checkboxInput("use_log", "Use Log?", value = FALSE),
                                            actionButton('add', "Add to Final Data"),
                                            actionButton('reset_input', "Clear Time Values"),
                                            downloadButton('download_atp',"Download Final Data"),
@@ -181,42 +181,49 @@ server <- function(input, output, session){
       return(NULL)
     data <- readxl::read_excel(inFile$datapath, col_names = T, sheet = paste(input$sheet_name))
     
-    data$Time <- round(data$Time)
+    name1 <- colnames(data[1])
+    name2 <- colnames(data[2])
     
-    Coef <- function(Z) coef(lm(Intensity ~ Time, as.data.frame(Z)))    
+    colnames(data) <- c('x', 'y')
+    
+    data$x <- round(data$x)
+    
+    Coef <- function(Z) coef(lm(y ~ x, as.data.frame(Z)))    
     avg_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
     
-    data$Slope <- avg_results$Time/input$averages
+    data$Slope <- avg_results$x/input$averages
     
     data$Slope <- as.numeric(data$Slope)
     
     Sample <- paste(input$sheet_name)
     
-    baseline <- data[c(which(data$Time == input$background_correction_start):which(data$Time == input$background_correction_end)),]
+    baseline <- data[c(which(data$x == input$background_correction_start):which(data$x == input$background_correction_end)),]
     
-    baseline_correction <- mean(baseline$Intensity)
+    baseline_correction <- mean(baseline$y)
     
-    data$Intensity_corrected <- data$Intensity - baseline_correction
+    data$Intensity_corrected <- data$y - baseline_correction
     
     for(k in input$use_log){
       
-      if(k == TRUE){
+      if(k == FALSE){
         
         data$ATP <- (0.001*1000000*((((data$Intensity_corrected) - input$std_curve_value_b)/input$std_curve_value_x)))/(input$protein*0.001)
       }
       
-      if(k == FALSE){
+      if(k == TRUE){
         
         data$ATP <- (0.001*1000000*(10^(((data$Intensity_corrected) - input$std_curve_value_b)/input$std_curve_value_x)))/(input$protein*0.001)
       }
     }
     
-    Coef <- function(Z) coef(lm(ATP ~ Time, as.data.frame(Z)))    
+    Coef <- function(Z) coef(lm(ATP ~ x, as.data.frame(Z)))    
     ATP_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
     
-    data$ATP_Slope <- ATP_results$Time
+    data$flux <- ATP_results$x
     
-    data$ATP_Slope <- as.numeric(data$ATP_Slope)
+    data$flux <- as.numeric(data$flux)
+    
+    colnames(data) <- c(paste(name1), paste(name2), paste(name2, 'Slope'), 'Intensity Corrected', 'Concentration (pmol)', 'Flux (pmol/sec)')
     
     return(data)
     
@@ -229,25 +236,57 @@ server <- function(input, output, session){
     inFile <- input$file1
     if (is.null(inFile))
       return(NULL)
-    
     data <- readxl::read_excel(inFile$datapath, col_names = T, sheet = paste(input$sheet_name))
     
-    data$Time <- round(data$Time)
+    name1 <- colnames(data[1])
+    name2 <- colnames(data[2])
     
-    Coef <- function(Z) coef(lm(Intensity ~ Time, as.data.frame(Z)))    
-    avg_results <- zoo::rollapplyr(zoo::zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
+    colnames(data) <- c('x', 'y')
     
-    data$Slope <- avg_results$Time/input$averages
+    data$x <- round(data$x)
+    
+    Coef <- function(Z) coef(lm(y ~ x, as.data.frame(Z)))    
+    avg_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
+    
+    data$Slope <- avg_results$x/input$averages
     
     data$Slope <- as.numeric(data$Slope)
+    
+    Sample <- paste(input$sheet_name)
+    
+    baseline <- data[c(which(data$x == input$background_correction_start):which(data$x == input$background_correction_end)),]
+    
+    baseline_correction <- mean(baseline$y)
+    
+    data$Intensity_corrected <- data$y - baseline_correction
+    
+    for(k in input$use_log){
+      
+      if(k == FALSE){
+        
+        data$ATP <- (0.001*1000000*((((data$Intensity_corrected) - input$std_curve_value_b)/input$std_curve_value_x)))/(input$protein*0.001)
+      }
+      
+      if(k == TRUE){
+        
+        data$ATP <- (0.001*1000000*(10^(((data$Intensity_corrected) - input$std_curve_value_b)/input$std_curve_value_x)))/(input$protein*0.001)
+      }
+    }
+    
+    Coef <- function(Z) coef(lm(ATP ~ x, as.data.frame(Z)))    
+    ATP_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
+    
+    data$flux <- ATP_results$x
+    
+    data$flux <- as.numeric(data$flux)
     
     sd <- SharedData$new(data)
     
     fig <- plot_ly()
     # Add traces
     fig <- fig %>% 
-      add_lines(data = sd, x = ~Time, y = ~Intensity, name = "Intensity", line = list(color='blue', width = 1)) %>%
-      add_markers(data = sd, x = ~Time, y = ~Intensity, alpha = 0.01) %>%
+      add_lines(data = sd, x = ~x, y = ~y, name = paste(name2), line = list(color='blue', width = 1)) %>%
+      add_markers(data = sd, x = ~x, y = ~y, alpha = 0.01) %>%
       highlight("plotly_selected", dynamic = TRUE)
     
     ay <- list(
@@ -257,8 +296,8 @@ server <- function(input, output, session){
       title = "<b>Flux</b>")
     
     fig <- fig %>% 
-      add_lines(data = sd, x = ~Time, y = ~Slope, name = "Flux", yaxis = "y2", line = list(color='red', width = 2.5)) %>%
-      add_markers(data = sd, x = ~Time, y = ~Slope, alpha = 0.01, yaxis = "y2") %>%
+      add_lines(data = sd, x = ~x, y = ~Slope, name = "Flux", yaxis = "y2", line = list(color='red', width = 2.5)) %>%
+      add_markers(data = sd, x = ~x, y = ~Slope, alpha = 0.01, yaxis = "y2") %>%
       highlight("plotly_selected", dynamic = TRUE)
     
     # Set figure title, x and y-axes titles
@@ -266,7 +305,7 @@ server <- function(input, output, session){
       title = do.call(paste, list("<b>FM Data for Sample", input$sheet_name, collapse = "</b>")),
       yaxis2 = ay,
       xaxis = list(title="<b>Time (s)</b>"),
-      yaxis = list(title="<b>Intensity</b>")
+      yaxis = list(title= do.call(paste, list('<b>', name2, '</b>')))
     )%>%
       layout(plot_bgcolor='white',
              xaxis = list(
@@ -410,7 +449,21 @@ server <- function(input, output, session){
           atp5_flux <- NA
         }
         
-        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux)
+        bg_start <- input$background_correction_start
+        bg_end <- input$background_correction_end
+        adp1_start <- input$adp1_slope_start
+        adp1_end <- input$adp1_slope_end
+        adp2_start <- input$adp2_slope_start
+        adp2_end <- input$adp2_slope_end
+        adp3_start <- input$adp3_slope_start
+        adp3_end <- input$adp3_slope_end
+        adp4_start <- input$adp4_slope_start
+        adp4_end <- input$adp4_slope_end
+        adp5_start <- input$adp5_slope_start
+        adp5_end <- input$adp5_slope_end
+        
+        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux, 
+                                     bg_start, bg_end, adp1_start, adp1_end, adp2_start, adp2_end, adp3_start, adp3_end, adp4_start, adp4_end, adp5_start, adp5_end)
       }
       
       if(k == FALSE){
@@ -508,11 +561,26 @@ server <- function(input, output, session){
           atp5_flux <- NA
         }
         
-        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux)
+        bg_start <- input$background_correction_start
+        bg_end <- input$background_correction_end
+        adp1_start <- input$adp1_slope_start
+        adp1_end <- input$adp1_slope_end
+        adp2_start <- input$adp2_slope_start
+        adp2_end <- input$adp2_slope_end
+        adp3_start <- input$adp3_slope_start
+        adp3_end <- input$adp3_slope_end
+        adp4_start <- input$adp4_slope_start
+        adp4_end <- input$adp4_slope_end
+        adp5_start <- input$adp5_slope_start
+        adp5_end <- input$adp5_slope_end
+        
+        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux, 
+                                     bg_start, bg_end, adp1_start, adp1_end, adp2_start, adp2_end, adp3_start, adp3_end, adp4_start, adp4_end, adp5_start, adp5_end)
       }
     }
     
-    colnames(atp_flux_means) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5')
+    colnames(atp_flux_means) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5', 
+                                  'Background Start', 'Background end', 'ADP1 Start', 'ADP1 end', 'ADP2 Start', 'ADP2 end', 'ADP3 Start', 'ADP3 end', 'ADP4 Start', 'ADP4 end', 'ADP5 Start', 'ADP5 end')
     
     
     return(atp_flux_means)
@@ -547,7 +615,8 @@ server <- function(input, output, session){
   output$final <- renderTable({
     final_data <- data.frame(rv$df)
     
-    colnames(final_data) <- c('Sample', 'Basal','ADP1', 'ADP2', 'ADP3', 'ADP4', 'ADP5')
+    colnames(final_data) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5', 
+                              'Background Start', 'Background end', 'ADP1 Start', 'ADP1 end', 'ADP2 Start', 'ADP2 end', 'ADP3 Start', 'ADP3 end', 'ADP4 Start', 'ADP4 end', 'ADP5 Start', 'ADP5 end')
     
     thedata <- reactive(final_data)
     
