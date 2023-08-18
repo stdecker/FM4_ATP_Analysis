@@ -124,7 +124,7 @@ tabPanel("User Guide",icon = icon('book-open'), fluid = TRUE,
              h2(HTML("<b>Instructions</b>")),
              h5(HTML("<p>For version control and other questions, see my <a href='https://github.com/stdecker/FM4_ATP_Analysis'>GitHub repo</a>.</p>")),
              h4(HTML("<b>Uploading Data</b>")),
-             h5("To upload data, Each Excel file must first be set up with 'Time' and 'Intensity' as the first two columns of each sheet, with the respective data in the underlying rows of each column."),
+             h5("To upload data, Each Excel file must first be set up with 'Time' and 'Intensity' as the first two columns of each sheet (these are case sensitive), with the respective data in the underlying rows of each column."),
              h5("Once data are in the correct format, you can upload the data using the tab on the left"),
              h4(HTML("<b>Selecting a Sheet</b>")),
              h5("The app requires you to input a 'Sheet Name'. The default naming scheme in Excel follows Sheet[x], where the first sheet x = 1 (so, Sheet1, Sheet2, etc.). 
@@ -183,22 +183,32 @@ server <- function(input, output, session){
     name1 <- colnames(data[1])
     name2 <- colnames(data[2])
     
-    colnames(data) <- c('x', 'y')
+    colnames(data) <- c('Time', 'y')
     
-    data$x <- round(data$x)
+    data$Time <- round(data$Time)
     
-    Coef <- function(Z) coef(lm(y ~ x, as.data.frame(Z)))    
+    Coef <- function(Z) coef(lm(y ~ Time, as.data.frame(Z)))    
     avg_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
     
-    data$Slope <- avg_results$x/input$averages
+    data$Slope <- avg_results$Time/input$averages
     
     data$Slope <- as.numeric(data$Slope)
     
     Sample <- paste(input$sheet_name)
     
-    baseline <- data[c(which(data$x == input$background_correction_start):which(data$x == input$background_correction_end)),]
+    if(input$background_correction_end == 0){
+      baseline <- 0
+      
+      baseline_correction <- mean(baseline)
+      
+    }
+    
+    if(input$background_correction_end != 0){
+    baseline <- data[c(which(data$Time == input$background_correction_start):which(data$Time == input$background_correction_end)),]
     
     baseline_correction <- mean(baseline$y)
+    
+    }
     
     data$Intensity_corrected <- data$y - baseline_correction
     
@@ -215,10 +225,10 @@ server <- function(input, output, session){
       }
     }
     
-    Coef <- function(Z) coef(lm(ATP ~ x, as.data.frame(Z)))    
+    Coef <- function(Z) coef(lm(ATP ~ Time, as.data.frame(Z)))    
     ATP_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
     
-    data$flux <- ATP_results$x
+    data$flux <- ATP_results$Time
     
     data$flux <- as.numeric(data$flux)
     
@@ -240,22 +250,32 @@ server <- function(input, output, session){
     name1 <- colnames(data[1])
     name2 <- colnames(data[2])
     
-    colnames(data) <- c('x', 'y')
+    colnames(data) <- c('Time', 'y')
     
-    data$x <- round(data$x)
+    data$Time <- round(data$Time)
     
-    Coef <- function(Z) coef(lm(y ~ x, as.data.frame(Z)))    
+    Coef <- function(Z) coef(lm(y ~ Time, as.data.frame(Z)))    
     avg_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
     
-    data$Slope <- avg_results$x/input$averages
+    data$Slope <- avg_results$Time/input$averages
     
     data$Slope <- as.numeric(data$Slope)
     
     Sample <- paste(input$sheet_name)
     
-    baseline <- data[c(which(data$x == input$background_correction_start):which(data$x == input$background_correction_end)),]
+    if(input$background_correction_end == 0){
+      baseline <- 0
+      
+      baseline_correction <- mean(baseline)
+      
+    }
     
-    baseline_correction <- mean(baseline$y)
+    if(input$background_correction_end != 0){
+      baseline <- data[c(which(data$Time == input$background_correction_start):which(data$Time == input$background_correction_end)),]
+      
+      baseline_correction <- mean(baseline$y)
+      
+    }
     
     data$Intensity_corrected <- data$y - baseline_correction
     
@@ -272,10 +292,10 @@ server <- function(input, output, session){
       }
     }
     
-    Coef <- function(Z) coef(lm(ATP ~ x, as.data.frame(Z)))    
+    Coef <- function(Z) coef(lm(ATP ~ Time, as.data.frame(Z)))    
     ATP_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
     
-    data$flux <- ATP_results$x
+    data$flux <- ATP_results$Time
     
     data$flux <- as.numeric(data$flux)
     
@@ -336,9 +356,14 @@ server <- function(input, output, session){
     
     data <- readxl::read_excel(inFile$datapath, col_names = T, sheet = paste(input$sheet_name))
     
+    name1 <- colnames(data[1])
+    name2 <- colnames(data[2])
+    
+    colnames(data) <- c('Time', 'y')
+    
     data$Time <- round(data$Time)
     
-    Coef <- function(Z) coef(lm(Intensity ~ Time, as.data.frame(Z)))    
+    Coef <- function(Z) coef(lm(y ~ Time, as.data.frame(Z)))    
     avg_results <- rollapplyr(zoo(data), input$averages, Coef, by.column = FALSE, fill = NA)
     
     data$Slope <- avg_results$Time/input$averages
@@ -347,11 +372,21 @@ server <- function(input, output, session){
     
     Sample <- paste(input$sheet_name)
     
-    baseline <- data[c(which(data$Time == input$background_correction_start):which(data$Time == input$background_correction_end)),]
+    if(input$background_correction_end == 0){
+      baseline <- 0
+      
+      baseline_correction <- mean(baseline)
+      
+    }
     
-    baseline_correction <- mean(baseline$Intensity)
+    if(input$background_correction_end != 0){
+      baseline <- data[c(which(data$Time == input$background_correction_start):which(data$Time == input$background_correction_end)),]
+      
+      baseline_correction <- mean(baseline$y)
+      
+    }
     
-    data$Intensity_corrected <- data$Intensity - baseline_correction
+    data$Intensity_corrected <- data$y - baseline_correction
     
     for(k in input$use_log){
       
