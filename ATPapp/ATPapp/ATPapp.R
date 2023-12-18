@@ -35,12 +35,12 @@ ui <- fluidPage(navbarPage("Horiba Fluorometer Analysis",
                                                         "Standard Curve x",
                                                         min = -3000000000000000000,
                                                         max = 3000000000000000000,
-                                                        value = 215516.6563),
+                                                        value = NA),
                                            numericInput("std_curve_value_b",
                                                         "Standard Curve b",
                                                         min = -3000000000000000000,
                                                         max = 3000000000000000000,
-                                                        value = 158967.0058),
+                                                        value = NA),
                                            checkboxInput("use_log", "Use Log?", value = FALSE),
                                            actionButton('add', "Add to Final Data"),
                                            actionButton('reset_input', "Clear Time Values"),
@@ -102,6 +102,16 @@ ui <- fluidPage(navbarPage("Horiba Fluorometer Analysis",
                                                         value = 0),
                                            numericInput("adp5_slope_end",
                                                         "Titration 5 End Time (s)",
+                                                        min = 0,
+                                                        max = 3000000000000000000,
+                                                        value = 0),
+                                           numericInput("adp6_slope_start",
+                                                        "Titration 6 Start Time (s)",
+                                                        min = 0,
+                                                        max = 3000000000000000000,
+                                                        value = 0),
+                                           numericInput("adp6_slope_end",
+                                                        "Titration 6 End Time (s)",
                                                         min = 0,
                                                         max = 3000000000000000000,
                                                         value = 0
@@ -169,6 +179,8 @@ server <- function(input, output, session){
     updateNumericInput(session, "adp4_slope_end", value = 0)
     updateNumericInput(session, "adp5_slope_start", value = 0)
     updateNumericInput(session, "adp5_slope_end", value = 0)
+    updateNumericInput(session, "adp6_slope_start", value = 0)
+    updateNumericInput(session, "adp6_slope_end", value = 0)
     
   })
   
@@ -485,6 +497,22 @@ server <- function(input, output, session){
           atp5_flux <- NA
         }
         
+        if(input$adp6_slope_end > 0){
+          adp6 <- data[c(which(data$Time == input$adp6_slope_start):which(data$Time == input$adp6_slope_end)),]
+        }
+        
+        if(input$adp6_slope_end == 0){
+          adp5 <- NA
+        }
+        
+        if(is.atomic(adp6) == FALSE){
+          atp6_flux <- mean(adp6$ATP_Slope)
+        }
+        
+        if(is.atomic(adp6) == TRUE){
+          atp6_flux <- NA
+        }
+        
         bg_start <- input$background_correction_start
         bg_end <- input$background_correction_end
         adp1_start <- input$adp1_slope_start
@@ -497,9 +525,11 @@ server <- function(input, output, session){
         adp4_end <- input$adp4_slope_end
         adp5_start <- input$adp5_slope_start
         adp5_end <- input$adp5_slope_end
+        adp6_start <- input$adp6_slope_start
+        adp6_end <- input$adp6_slope_end
         
-        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux, 
-                                     bg_start, bg_end, adp1_start, adp1_end, adp2_start, adp2_end, adp3_start, adp3_end, adp4_start, adp4_end, adp5_start, adp5_end)
+        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux, atp6_flux,
+                                     bg_start, bg_end, adp1_start, adp1_end, adp2_start, adp2_end, adp3_start, adp3_end, adp4_start, adp4_end, adp5_start, adp5_end, adp6_start, adp6_end)
       }
       
       if(k == FALSE){
@@ -596,6 +626,21 @@ server <- function(input, output, session){
         if(is.atomic(adp5) == TRUE){
           atp5_flux <- NA
         }
+        if(input$adp6_slope_end > 0){
+          adp6 <- data[c(which(data$Time == input$adp6_slope_start):which(data$Time == input$adp6_slope_end)),]
+        }
+        
+        if(input$adp6_slope_end == 0){
+          adp6 <- NA
+        }
+        
+        if(is.atomic(adp6) == FALSE){
+          atp6_flux <- mean(adp6$ATP_Slope)
+        }
+        
+        if(is.atomic(adp6) == TRUE){
+          atp6_flux <- NA
+        }
         
         bg_start <- input$background_correction_start
         bg_end <- input$background_correction_end
@@ -609,16 +654,19 @@ server <- function(input, output, session){
         adp4_end <- input$adp4_slope_end
         adp5_start <- input$adp5_slope_start
         adp5_end <- input$adp5_slope_end
+        adp6_start <- input$adp6_slope_start
+        adp6_end <- input$adp6_slope_end
         
-        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux, 
-                                     bg_start, bg_end, adp1_start, adp1_end, adp2_start, adp2_end, adp3_start, adp3_end, adp4_start, adp4_end, adp5_start, adp5_end)
+        atp_flux_means <- data.frame(Sample, baseline_flux, atp1_flux, atp2_flux, atp3_flux, atp4_flux, atp5_flux, atp6_flux,
+                                     bg_start, bg_end, adp1_start, adp1_end, adp2_start, adp2_end, adp3_start, adp3_end, adp4_start, adp4_end, adp5_start, adp5_end, adp6_start, adp6_end)
       }
     }
     
-    colnames(atp_flux_means) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5', 
+    colnames(atp_flux_means) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5', 'ADP 6',
                                   'Background Start Time (s)', 'Background end Time (s)', 'ADP1 Start Time (s)', 'ADP1 end Time (s)', 
                                   'ADP2 Start Time (s)', 'ADP2 end Time (s)', 'ADP3 Start Time (s)', 'ADP3 end Time (s)', 
-                                  'ADP4 Start Time (s)', 'ADP4 end Time (s)', 'ADP5 Start Time (s)', 'ADP5 end Time (s)')
+                                  'ADP4 Start Time (s)', 'ADP4 end Time (s)', 'ADP5 Start Time (s)', 'ADP5 end Time (s)', 
+                                  'ADP6 Start Time (s)', 'ADP6 end Time (s)')
     
     
     return(atp_flux_means)
@@ -641,7 +689,8 @@ server <- function(input, output, session){
       'ADP 2' = double(),
       'ADP 3' = double(),
       'ADP 4' = double(),
-      'ADP 5' = double()
+      'ADP 5' = double(),
+      'ADP 6' = double()
     )
   )
   
@@ -656,7 +705,8 @@ server <- function(input, output, session){
     colnames(final_data) <- c('Sample', 'Basal', 'ADP 1', 'ADP 2', 'ADP 3', 'ADP 4', 'ADP 5', 
                               'Background Start Time (s)', 'Background end Time (s)', 'ADP1 Start Time (s)', 'ADP1 end Time (s)', 
                               'ADP2 Start Time (s)', 'ADP2 end Time (s)', 'ADP3 Start Time (s)', 'ADP3 end Time (s)', 
-                              'ADP4 Start Time (s)', 'ADP4 end Time (s)', 'ADP5 Start Time (s)', 'ADP5 end Time (s)')
+                              'ADP4 Start Time (s)', 'ADP4 end Time (s)', 'ADP5 Start Time (s)', 'ADP5 end Time (s)', 
+                              'ADP6 Start Time (s)', 'ADP6 end Time (s)')
     
     thedata <- reactive(final_data)
     
